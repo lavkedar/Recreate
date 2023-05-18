@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="node_modules/@svgdotjs/svg.js/dist/svg.js"></script>
+    <script src="node_modules/@svgdotjs/svg.draggable.js/dist/svg.draggable.js"></script>
+  </head>
+
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: auto;
+      display: flex;
+    }
+    #svg {
+      width: 70%;
+      height: 100%;
+      background-color: steelblue;
+      border: 3px solid lightblue;
+    }
+    #array {
+      width: 30%;
+      height: 100%;
+      background-color: rebeccapurple;
+      border: 3px solid lightblue;
+      overflow: auto;
+    }
+    #btn,
+    #btn2 {
+      margin: 5px 5px;
+      padding: 5px 10px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    #btn2 {
+      top: 30px;
+    }
+    .show {
+      display: block;
+    }
+    .hide {
+      display: none;
+    }
+  </style>
+  <body>
+    <svg id="svg">
+      <g id="line"></g>
+    </svg>
+    <script>
+      let stirng = ` [
+        {
+          "circle": {
+            "r": 50,
+            "cx": 438,
+            "cy": 408,
+            "fill": "red",
+            "stroke": "yellow",
+            "stroke-width": "3px",
+            "id": 1
+          },
+          "children": [
+            {
+              "circle": {
+                "r": 30,
+                "cx": 721,
+                "cy": 297,
+                "fill": "green",
+                "stroke": "yellow",
+                "stroke-width": "3px",
+                "id": 2
+              },
+              "children": []
+            },
+            {
+              "circle": {
+                "r": 30,
+                "cx": 242,
+                "cy": 489,
+                "fill": "green",
+                "stroke": "yellow",
+                "stroke-width": "3px",
+                "id": 3
+              },
+              "children": []
+            },
+            {
+              "circle": {
+                "r": 30,
+                "cx": 570,
+                "cy": 538,
+                "fill": "green",
+                "stroke": "yellow",
+                "stroke-width": "3px",
+                "id": 4
+              },
+              "children": []
+            },
+            {
+              "circle": {
+                "r": 30,
+                "cx": 409,
+                "cy": 183,
+                "fill": "green",
+                "stroke": "yellow",
+                "stroke-width": "3px",
+                "id": 5
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+      `;
+
+      let paper = SVG("#svg");
+      let show = true;
+      let lineGroup = SVG("#line");
+
+      let circles = JSON.parse(stirng);
+
+      function createLine(a, b) {
+        let l = paper
+          .line(a.circle.cx, a.circle.cy, b.circle.cx, b.circle.cy)
+          .attr({
+            stroke: "white",
+            "stroke-width": "3",
+            id: "Line" + b.circle.id,
+          });
+        lineGroup.add(l);
+      }
+
+      function joinKids() {
+        paper.find("line").remove();
+
+        console.log("lines after remove", paper.find("line"));
+        for (let root of circles) {
+          dfs(root);
+        }
+
+        console.log(paper.find("line"));
+      }
+
+      function dfs(root) {
+        paper
+          .circle()
+          .radius(root.circle.r)
+          .center(root.circle.cx, root.circle.cy)
+          .attr({
+            fill: root.circle.fill,
+            stroke: "yellow",
+            "stroke-width": root.circle["stroke-width"],
+          })
+          .draggable();
+        if (root.children.length > 0) {
+          for (let i of root.children) {
+            createLine(root, i);
+            dfs(i);
+          }
+        } else {
+          return;
+        }
+      }
+
+      joinKids();
+    </script>
+  </body>
+</html>

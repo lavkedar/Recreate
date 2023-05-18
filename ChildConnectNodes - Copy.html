@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/snap.svg/0.4.1/snap.svg-min.js"
+      integrity="sha512-PtnRurZm07A0j27+J1/3m160UiCHTGeMoLTtK70vdm9csIPlMu/KMfglomIcPoQV14EqrnGqYupUvJXBWoFxUg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 100vw;
+        height: 100vh;
+        overflow: auto;
+        display: flex;
+      }
+      #svg {
+        width: 70%;
+        height: 100%;
+        background-color: steelblue;
+        border: 3px solid lightblue;
+      }
+      #array {
+        width: 30%;
+        height: 100%;
+        background-color: rebeccapurple;
+        border: 3px solid lightblue;
+        overflow: auto;
+      }
+      #btn,
+      #btn2 {
+        margin: 5px 5px;
+        padding: 5px 10px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+      #btn2 {
+        top: 30px;
+      }
+      .show {
+        display: block;
+      }
+      .hide {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="svg">
+      <g id="line"></g>
+    </svg>
+    <div id="array" class="show"><pre id="pre"></pre></div>
+    <!-- <button id="btn" onclick="joinKids()">Join Children</button> -->
+    <button id="btn" onclick="board()">Hide/Unhide the Board</button>
+  </body>
+  <script>
+    // main svg element
+    let paper = Snap("#svg");
+    let show = true;
+    let lineGroup = Snap("#line");
+    // array to store hotspots
+    let circles = [];
+    function createLine(a, b) {
+      let l = paper
+        .line(
+          a.circle.attr("cx"),
+          a.circle.attr("cy"),
+          b.circle.attr("cx"),
+          b.circle.attr("cy")
+        )
+        .attr({
+          stroke: "white",
+          strokeWidth: "3",
+          id: "Line" + b.circle.attr("id"),
+        });
+      lineGroup.append(l);
+    }
+    function board() {
+      show = !show;
+      let s = document.getElementById("svg");
+      if (show) {
+        document.getElementById("array").classList.add("show");
+        document.getElementById("array").classList.remove("hide");
+        s.style.width = "70%";
+      } else {
+        s.style.width = "100%";
+        document.getElementById("array").classList.add("hide");
+        document.getElementById("array").classList.remove("show");
+      }
+    }
+    function getNode(id) {
+      for (let i of circles) {
+        if (i.circle.attr("id") == id) {
+          return i;
+        }
+        if (i.children.length > 0) {
+          for (let j of i.children) {
+            let k = getChild(j, id);
+            if (k != null) {
+              return k;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    function getChild(node, id) {
+      if (node.circle.attr("id") == id) {
+        return node;
+      }
+      if (node.children.length > 0) {
+        for (let k of node.children) {
+          let c = getChild(k, id);
+          if (c != null) {
+            return c;
+          }
+        }
+      }
+      return null;
+    }
+    function getChildren(id) {
+      arr = [];
+      let n = getNode(id);
+      if (n != null) {
+        if (n.children.length > 0) {
+          n.children.forEach((data) => {
+            console.log(data.circle.attr("id"));
+            arr.push(data.circle.attr("id"));
+          });
+        }
+        return arr;
+      }
+      return arr;
+    }
+    function joinKids() {
+      paper.selectAll("line").remove();
+      for (let root of circles) {
+        dfs(root);
+      }
+    }
+    function dfs(root) {
+      if (root.children.length > 0) {
+        for (let i of root.children) {
+          createLine(root, i);
+          dfs(i);
+        }
+      } else {
+        return;
+      }
+    }
+    let svg = document.getElementById("svg");
+    let pre = document.getElementById("pre");
+    let id = 0;
+    parentLine = null;
+    childLine = [];
+    var move = function (dx, dy) {
+      this.attr({
+        transform:
+          this.data("origTransform") +
+          (this.data("origTransform") ? "T" : "t") +
+          [dx, dy],
+      });
+
+      console.log("moving");
+      if (parentLine != null) {
+        parentLine.attr({ x2: this.getBBox().cx, y2: this.getBBox().cy });
+      }
+      if (childLine.length > 0) {
+        childLine.forEach((line) => {
+          line.attr({ x1: this.getBBox().cx, y1: this.getBBox().cy });
+        });
+      }
+    };
+    var start = function () {
+      this.data("origTransform", this.transform().local);
+      let Pline = paper.select("#Line" + this.attr("id"));
+      if (Pline != null) {
+        parentLine = Pline;
+      }
+      let a = getChildren(this.attr("id"));
+      if (a.length > 0) {
+        a.forEach((data) => {
+          let b = paper.select("#Line" + data);
+          if (b != null) childLine.push(b);
+        });
+      }
+    };
+    var stop = function () {
+      console.log("finished dragging");
+      this.attr({
+        cx: this.getBBox().cx,
+        cy: this.getBBox().cy,
+        transform: "",
+      });
+      updateArrayBox();
+      parentLine = null;
+      childLine = [];
+    };
+    function updateArrayBox() {
+      pre.innerText = JSON.stringify(circles, null, 2);
+    }
+    svg.addEventListener("click", (e) => {
+      if (e.target.tagName == "circle") {
+        return;
+      }
+      let cir = paper
+        .circle(e.offsetX, e.offsetY, 50)
+        .attr({ fill: "red", stroke: "yellow", strokeWidth: "3px", id: id + 1 })
+        .drag();
+      cir.drag(move, start, stop);
+      id = id + 1;
+      circles.push({ circle: cir, children: [] });
+      updateArrayBox();
+    });
+    svg.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (e.target.tagName === "circle") {
+        let n = getNode(e.target.id);
+        if (n != null) {
+          console.log(n);
+          let cir = paper
+            .circle(e.offsetX + 50, e.offsetY + 50, 30)
+            .attr({
+              fill: "green",
+              stroke: "yellow",
+              strokeWidth: "3px",
+              id: id + 1,
+            })
+            .drag();
+          cir.drag(move, start, stop);
+          console.log(cir);
+          id = id + 1;
+          n.children.push({ circle: cir, children: [] });
+          joinKids();
+          updateArrayBox();
+        }
+      }
+    });
+  </script>
+</html>
